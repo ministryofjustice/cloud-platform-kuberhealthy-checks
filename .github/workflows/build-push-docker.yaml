@@ -3,9 +3,7 @@ on:
   workflow_dispatch:
   release:
     types: [published]
-
 jobs:
-
   push_to_registry:
     name: Push image to docker hub
     runs-on: ubuntu-latest
