@@ -31,7 +31,6 @@ spec:
 
 The check also requires a ServiceAccount, ClusterRoleBinding and ClusterRole with permissions to get any namespace from the cluster. Refer [cloud-platform-terraform-kuberhealthy](https://github.com/ministryofjustice/cloud-platform-terraform-kuberhealthy) for full list of resources required.
 
-
 To implement the Namespace Check with Kuberhealthy, update the image in the above crd definition and run
 
 `kubectl apply -f . -n kuberhealthy`
