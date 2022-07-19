@@ -2,6 +2,9 @@ FROM golang:1.18-alpine AS builder
 
 WORKDIR /app
 
+COPY go.* /app/
+RUN go mod download
+
 COPY . /app
 
 WORKDIR /app/cmd/namespace-check
