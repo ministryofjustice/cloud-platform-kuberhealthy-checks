@@ -60,8 +60,6 @@ func main() {
 	if reportErr != nil {
 		log.Fatalln("error reporting to kuberhealthy:", err.Error())
 	}
-
-	return
 }
 
 // doExpectedNamespacesExist checks if the expected namespaces exist in the cluster.
