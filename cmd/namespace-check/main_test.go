@@ -44,7 +44,6 @@ func TestOptions_namespaceExist(t *testing.T) {
 }
 
 func getTestNamespaces() []runtime.Object {
-
 	return []runtime.Object{
 		&v1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{

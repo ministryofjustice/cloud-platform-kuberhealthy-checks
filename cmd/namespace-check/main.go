@@ -11,16 +11,16 @@ import (
 
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-
 	// K8s config file for the client.
 	kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	// We have to explicitly list of namespaces that we want to look for
 
+	// We have to explicitly list of namespaces that we want to look for
 	namespaces = []string{
 		"cert-manager",
 		"default",
@@ -60,7 +60,25 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	ok, err := o.namespaceExist(ctx)
+	// If the check cannot find the namespace, then try once more.
+	if errors.IsNotFound(err) {
+		log.Infoln("Namespace not found by client, trying again.")
+		ok, err = o.namespaceExist(ctx)
+		// If the check cannot find the namespace again, then report a failure.
+		if err != nil {
+			errorMessage := "failed to check for namespace with error: " + err.Error()
+			reportErr := checkclient.ReportFailure([]string{errorMessage})
+			if reportErr != nil {
+				log.Fatalln("error reporting failure to kuberhealthy:", reportErr.Error())
+			}
+			return
+		} else {
+			log.Fatalln("Namespace not found by client, check failed:", err)
+		}
+	}
+
 	if ok {
+		// If an error is returned to the reporting function, then the check will fail. If not, it succeeds.
 		reportErr := checkclient.ReportSuccess()
 		if reportErr != nil {
 			log.Fatalln("error reporting to kuberhealthy:", err.Error())
