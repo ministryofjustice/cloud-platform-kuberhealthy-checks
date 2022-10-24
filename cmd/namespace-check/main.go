@@ -72,9 +72,9 @@ func main() {
 				log.Fatalln("error reporting failure to kuberhealthy:", reportErr.Error())
 			}
 			return
-		} else {
-			log.Fatalln("Namespace not found by client, check failed:", err)
 		}
+	} else {
+		log.Fatalln("Namespace not found by client, check failed:", err)
 	}
 
 	if ok {
