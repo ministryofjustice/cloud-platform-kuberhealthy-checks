@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -64,17 +65,22 @@ func main() {
 
 // doExpectedNamespacesExist checks if the expected namespaces exist in the cluster.
 func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string) error {
+	var missing []string
 	for _, ns := range expectedNamespaces {
 		if checkclient.Debug {
 			log.Println("Checking for namespace", ns)
 		}
 		_, err := client.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("namespace %s not found", ns)
+			missing = append(missing, ns)
 		} else if err != nil {
 			log.Println("Getting namespace from cluster failed:", err)
 			return fmt.Errorf("failed getting namespace %s from cluster: %w", ns, err)
 		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing namespaces: %s", strings.Join(missing, ", "))
 	}
 	return nil
 }
