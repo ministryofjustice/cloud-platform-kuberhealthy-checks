@@ -3,25 +3,29 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
+func init() {
+	checkclient.Debug = true
+}
 
+func main() {
 	// K8s config file for the client.
-	kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	// We have to explicitly list of namespaces that we want to look for
+	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-	namespaces = []string{
+	// We have to explicitly list of namespaces that we want to look for
+	namespaces := []string{
 		"cert-manager",
 		"default",
 		"ingress-controllers",
@@ -31,65 +35,52 @@ var (
 		"opa",
 		"velero",
 	}
-)
 
-func init() {
-	checkclient.Debug = true
-}
-
-type Options struct {
-	client kubernetes.Interface
-}
-
-func main() {
-	// create context
-	ctx := context.Background()
-
-	// Create a kubernetes client.
-	var err error
-	o := Options{}
-	o.client, err = kubeClient.Create(kubeConfigFile)
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		errorMessage := "failed to create a kubernetes client with error: " + err.Error()
-		reportErr := checkclient.ReportFailure([]string{errorMessage})
-		if reportErr != nil {
-			log.Fatalln("error reporting failure to kuberhealthy:", reportErr.Error())
-		}
-		return
-	}
-	log.Infoln("Kubernetes client created.")
-
-	ok, err := o.namespaceExist(ctx)
-	if ok {
-		reportErr := checkclient.ReportSuccess()
-		if reportErr != nil {
-			log.Fatalln("error reporting to kuberhealthy:", err.Error())
-
-		}
-		return
+		log.Fatalln(err.Error())
 	}
 
-	reportErr := checkclient.ReportFailure([]string{"Namespace check failed:" + err.Error()})
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces); err != nil {
+		reportErr := checkclient.ReportFailure([]string{"Namespace check failed:" + err.Error()})
+		if reportErr != nil {
+			log.Fatalln("Unable to communicate with kuberhealthy", reportErr.Error())
+		}
+		log.Fatalln("Error checking for namespaces", err)
+	}
+
+	// report success to Kuberhealthy. If it fails, fail the check.
+	reportErr := checkclient.ReportSuccess()
 	if reportErr != nil {
 		log.Fatalln("error reporting to kuberhealthy:", err.Error())
 	}
 }
 
-func (o Options) namespaceExist(ctx context.Context) (bool, error) {
-	var notFoundNamespaces []string
-	// range over namespaces and check if exists
-	for _, ns := range namespaces {
-		_, err := o.client.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
+// doExpectedNamespacesExist checks if the expected namespaces exist in the cluster.
+func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string) error {
+	var missing []string
+	for _, ns := range expectedNamespaces {
+		if checkclient.Debug {
+			log.Println("Checking for namespace", ns)
+		}
+		_, err := client.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			notFoundNamespaces = append(notFoundNamespaces, ns)
+			missing = append(missing, ns)
 		} else if err != nil {
-			log.Infoln("Getting namespace from cluster failed:", err)
-			return false, fmt.Errorf("failed getting namespace %s from cluster", ns)
+			log.Println("Getting namespace from cluster failed:", err)
+			return fmt.Errorf("failed getting namespace %s from cluster: %w", ns, err)
 		}
 	}
-	// If the notFoundNamespaces collection contains a namespace entry, then the check has to fail.
-	if notFoundNamespaces != nil {
-		return false, fmt.Errorf("namespaces %s not found", notFoundNamespaces)
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing namespaces: %s", strings.Join(missing, ", "))
 	}
-	return true, nil
+	return nil
 }

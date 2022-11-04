@@ -7,54 +7,69 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-func TestOptions_namespaceExist(t *testing.T) {
-	objects := getTestNamespaces()
-	namespaces = []string{"ns-01"}
+func getTestNamespaces() []runtime.Object {
+	return []runtime.Object{
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "cert-manager",
+			},
+		},
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		},
+	}
+}
 
+func Test_doExpectedNamespacesExist(t *testing.T) {
+	type args struct {
+		ctx                context.Context
+		client             kubernetes.Interface
+		expectedNamespaces []string
+	}
 	tests := []struct {
 		name    string
-		want    bool
+		args    args
 		wantErr bool
 	}{
 		{
-			name:    "check ns-01 exists",
-			want:    true,
+			name: "The correct namespaces exist",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
+				expectedNamespaces: []string{"cert-manager", "default"},
+			},
 			wantErr: false,
+		},
+		{
+			name: "The correct namespaces don't exist",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
+				expectedNamespaces: []string{"cert-manager", "default", "test"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Bad client",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(),
+				expectedNamespaces: []string{"cert-manager", "default"},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := testclient.NewSimpleClientset(objects...)
-			o := Options{
-				client: client,
-			}
-			got, err := o.namespaceExist(context.Background())
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Options.namespaceExist() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Options.namespaceExist() = %v, want %v", got, tt.want)
+			if err := doExpectedNamespacesExist(tt.args.ctx, tt.args.client, tt.args.expectedNamespaces); (err != nil) != tt.wantErr {
+				t.Errorf("doExpectedNamespacesExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-	}
-}
-
-func getTestNamespaces() []runtime.Object {
-
-	return []runtime.Object{
-		&v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns-01",
-			},
-		},
-		&v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns-02",
-			},
-		},
 	}
 }
