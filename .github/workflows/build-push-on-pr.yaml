@@ -35,12 +35,12 @@ jobs:
   #         file: cmd/namespace-check/Dockerfile
   #         push: true
   #         tags: ${{ steps.metadata.outputs.tags }}
+
   push_to_ecr:
     name: Push image to ECR
     runs-on: ubuntu-latest
-    environment: production
 
-    permissions:
+    permissions: 
       id-token: write
       contents: read
 
@@ -48,14 +48,14 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: eu-west-2
           role-to-assume: ${{ secrets.ECR_ROLE_TO_ASSUME }}
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -69,4 +69,4 @@ jobs:
           context: .
           file: cmd/namespace-check/Dockerfile        
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:gha-${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
