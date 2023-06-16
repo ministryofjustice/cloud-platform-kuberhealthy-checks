@@ -22,11 +22,14 @@ func init() {
 
 func main() {
 	// K8s config file for the client.
-	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln("Unable to get user home directory", err.Error())
+	}
+
+	kubeconfig := filepath.Join(userHomeDir, ".kube", "config")
 	if kubeconfig == "" {
 		log.Fatalln("kubeconfig: No kubeconfig file found in $HOME/.kube/config")
-	} else {
-		fmt.Println("Using kubeconfig file:", kubeconfig)
 	}
 
 	// We have to explicitly list of namespaces that we want to look for
