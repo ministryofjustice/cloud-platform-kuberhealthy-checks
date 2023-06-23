@@ -1,4 +1,4 @@
-name: Build and Push to docker on PR 
+name: Build and Push kuberhealthy check image on PR 
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
