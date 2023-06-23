@@ -32,8 +32,9 @@ jobs:
         uses: docker/build-push-action@v3
         env:
           REPOSITORY: webops/cloud-platform-kuberhealthy-checks
+          IMAGE_TAG: ${{ github.event.release.tag_name }}
         with:
           context: .
           file: cmd/namespace-check/Dockerfile        
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.ref }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
