@@ -36,4 +36,4 @@ jobs:
           context: .
           file: cmd/namespace-check/Dockerfile        
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}:${{ github.ref }}
