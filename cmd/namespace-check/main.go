@@ -40,7 +40,7 @@ func main() {
 		"kube-system",
 		"logging",
 		"monitoring",
-		"opa",
+		"gatekeeper-system",
 		"velero",
 	}
 
