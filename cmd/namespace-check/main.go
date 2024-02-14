@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,11 +45,15 @@ func main() {
 		"velero",
 	}
 
+	prodEnvs := []string{"manager", "live-2", "live"}
+
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
+	rawConfig := clientcmd.GetConfigFromFileOrDie(kubeconfig)
 
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -56,7 +61,10 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 
-	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces); err != nil {
+	currentEnv := strings.Split(rawConfig.CurrentContext, "/")
+	isProd := slices.Contains(prodEnvs, currentEnv[1])
+
+	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces, isProd); err != nil {
 		reportErr := checkclient.ReportFailure([]string{"Namespace check failed:" + err.Error()})
 		if reportErr != nil {
 			log.Fatalln("Unable to communicate with kuberhealthy", reportErr.Error())
@@ -72,12 +80,22 @@ func main() {
 }
 
 // doExpectedNamespacesExist checks if the expected namespaces exist in the cluster.
-func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string) error {
+func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string, isProd bool) error {
 	var missing []string
+
+	liveOnlyNamespaces := []string{
+		"velero",
+	}
+
 	for _, ns := range expectedNamespaces {
+		if !isProd && slices.Contains(liveOnlyNamespaces, ns) {
+			continue
+		}
+
 		if checkclient.Debug {
 			log.Println("Checking for namespace", ns)
 		}
+
 		_, err := client.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			missing = append(missing, ns)

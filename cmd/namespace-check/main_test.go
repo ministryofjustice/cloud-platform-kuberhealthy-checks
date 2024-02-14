@@ -31,6 +31,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 		ctx                context.Context
 		client             kubernetes.Interface
 		expectedNamespaces []string
+		isProd             bool
 	}
 	tests := []struct {
 		name    string
@@ -43,6 +44,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"cert-manager", "default"},
+				isProd:             true,
 			},
 			wantErr: false,
 		},
@@ -52,6 +54,27 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"cert-manager", "default", "test"},
+				isProd:             true,
+			},
+			wantErr: true,
+		},
+		{
+			name: "is not prod",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
+				expectedNamespaces: []string{"velero", "default"},
+				isProd:             false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "is prod",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
+				expectedNamespaces: []string{"velero", "default"},
+				isProd:             true,
 			},
 			wantErr: true,
 		},
@@ -61,13 +84,14 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(),
 				expectedNamespaces: []string{"cert-manager", "default"},
+				isProd:             true,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := doExpectedNamespacesExist(tt.args.ctx, tt.args.client, tt.args.expectedNamespaces); (err != nil) != tt.wantErr {
+			if err := doExpectedNamespacesExist(tt.args.ctx, tt.args.client, tt.args.expectedNamespaces, tt.args.isProd); (err != nil) != tt.wantErr {
 				t.Errorf("doExpectedNamespacesExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
