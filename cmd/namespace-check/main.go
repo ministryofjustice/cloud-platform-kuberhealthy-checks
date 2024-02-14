@@ -83,12 +83,12 @@ func main() {
 func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string, isProd bool) error {
 	var missing []string
 
-	liveOnlyNamespaces := []string{
+	prodOnlyNamespaces := []string{
 		"velero",
 	}
 
 	for _, ns := range expectedNamespaces {
-		if !isProd && slices.Contains(liveOnlyNamespaces, ns) {
+		if !isProd && slices.Contains(prodOnlyNamespaces, ns) {
 			continue
 		}
 
