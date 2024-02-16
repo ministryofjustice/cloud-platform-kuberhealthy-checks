@@ -15,12 +15,11 @@ jobs:
       # Install Go on the VM running the action.
       - uses: WillAbides/setup-go-faster@v1.7.0
         with:
-          go-version: "1.18.x"
+          go-version: "1.21.x"
 
       - name: Perform staticcheck on codebase
-        uses: dominikh/staticcheck-action@v1.2.0
+        uses: dominikh/staticcheck-action@v1.3.0
         with:
-          version: "2022.1"
           install-go: false
 
       - name: Install gofumpt

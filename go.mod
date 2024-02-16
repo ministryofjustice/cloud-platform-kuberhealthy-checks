@@ -1,6 +1,6 @@
 module github.com/ministryofjustice/cloud-platform-kuberhealthy-checks
 
-go 1.18
+go 1.21
 
 require (
 	github.com/kuberhealthy/kuberhealthy/v2 v2.7.1
