@@ -53,16 +53,15 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 
-	rawConfig := clientcmd.GetConfigFromFileOrDie(kubeconfig)
-
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	currentEnv := strings.Split(rawConfig.CurrentContext, "/")
-	isProd := slices.Contains(prodEnvs, currentEnv[1])
+	currentEnv := os.Getenv("CLUSTER_ENV")
+
+	isProd := slices.Contains(prodEnvs, currentEnv)
 
 	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces, isProd); err != nil {
 		reportErr := checkclient.ReportFailure([]string{"Namespace check failed:" + err.Error()})
@@ -89,6 +88,7 @@ func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface,
 
 	for _, ns := range expectedNamespaces {
 		if !isProd && slices.Contains(prodOnlyNamespaces, ns) {
+			fmt.Printf("skipping namespace %s because we are running in a non-prod cluster", ns)
 			continue
 		}
 
