@@ -101,12 +101,12 @@ func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface,
 
 	for _, ns := range expectedNamespaces {
 		if !isProd && slices.Contains(prodOnlyNamespaces, ns) {
-			fmt.Printf("skipping namespace %s because we are running in a non-prod cluster", ns)
+			fmt.Printf("skipping namespace %s because we are running in a non-prod cluster\n", ns)
 			continue
 		}
 
 		if !isLive && slices.Contains(liveOnlyNamespaces, ns) {
-			fmt.Printf("skipping namespace %s because we are running in a non-live cluster", ns)
+			fmt.Printf("skipping namespace %s because we are running in a non-live cluster\n", ns)
 			continue
 		}
 
@@ -119,12 +119,12 @@ func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface,
 			missing = append(missing, ns)
 		} else if err != nil {
 			log.Println("Getting namespace from cluster failed:", err)
-			return fmt.Errorf("failed getting namespace %s from cluster: %w", ns, err)
+			return fmt.Errorf("failed getting namespace %s from cluster: %w\n", ns, err)
 		}
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing namespaces: %s", strings.Join(missing, ", "))
+		return fmt.Errorf("missing namespaces: %s\n", strings.Join(missing, ", "))
 	}
 	return nil
 }
