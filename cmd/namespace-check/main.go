@@ -35,17 +35,22 @@ func main() {
 
 	// We have to explicitly list of namespaces that we want to look for
 	namespaces := []string{
+		"calico-apiserver",
+		"calico-system",
 		"cert-manager",
 		"default",
+		"external-secrets-operator",
+		"gatekeeper-system",
 		"ingress-controllers",
 		"kube-system",
+		"kuberos",
 		"logging",
 		"monitoring",
-		"gatekeeper-system",
+		"overprovision",
+		"tigera-operator",
+		"trivy-system",
 		"velero",
 	}
-
-	prodEnvs := []string{"manager", "live-2", "live"}
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -61,9 +66,7 @@ func main() {
 
 	currentEnv := os.Getenv("CLUSTER_ENV")
 
-	isProd := slices.Contains(prodEnvs, currentEnv)
-
-	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces, isProd); err != nil {
+	if err := doExpectedNamespacesExist(context.Background(), clientset, namespaces, currentEnv); err != nil {
 		reportErr := checkclient.ReportFailure([]string{"Namespace check failed:" + err.Error()})
 		if reportErr != nil {
 			log.Fatalln("Unable to communicate with kuberhealthy", reportErr.Error())
@@ -79,16 +82,31 @@ func main() {
 }
 
 // doExpectedNamespacesExist checks if the expected namespaces exist in the cluster.
-func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string, isProd bool) error {
+func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string, currentEnv string) error {
 	var missing []string
+	prodEnvs := []string{"manager", "live-2", "live"}
+	liveEnvs := []string{"live", "live-2"}
+
+	isProd := slices.Contains(prodEnvs, currentEnv)
+
+	isLive := slices.Contains(liveEnvs, currentEnv)
 
 	prodOnlyNamespaces := []string{
 		"velero",
 	}
 
+	liveOnlyNamespaces := []string{
+		"overprovision",
+	}
+
 	for _, ns := range expectedNamespaces {
 		if !isProd && slices.Contains(prodOnlyNamespaces, ns) {
 			fmt.Printf("skipping namespace %s because we are running in a non-prod cluster", ns)
+			continue
+		}
+
+		if !isLive && slices.Contains(liveOnlyNamespaces, ns) {
+			fmt.Printf("skipping namespace %s because we are running in a non-live cluster", ns)
 			continue
 		}
 

@@ -31,7 +31,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 		ctx                context.Context
 		client             kubernetes.Interface
 		expectedNamespaces []string
-		isProd             bool
+		currentEnv         string
 	}
 	tests := []struct {
 		name    string
@@ -44,7 +44,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"cert-manager", "default"},
-				isProd:             true,
+				currentEnv:         "whatever",
 			},
 			wantErr: false,
 		},
@@ -54,7 +54,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"cert-manager", "default", "test"},
-				isProd:             true,
+				currentEnv:         "whatever",
 			},
 			wantErr: true,
 		},
@@ -64,7 +64,7 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"velero", "default"},
-				isProd:             false,
+				currentEnv:         "whatever",
 			},
 			wantErr: false,
 		},
@@ -74,9 +74,19 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
 				expectedNamespaces: []string{"velero", "default"},
-				isProd:             true,
+				currentEnv:         "live",
 			},
 			wantErr: true,
+		},
+		{
+			name: "is non-live",
+			args: args{
+				ctx:                context.TODO(),
+				client:             testclient.NewSimpleClientset(getTestNamespaces()...),
+				expectedNamespaces: []string{"overprovision", "default"},
+				currentEnv:         "manager",
+			},
+			wantErr: false,
 		},
 		{
 			name: "Bad client",
@@ -84,14 +94,14 @@ func Test_doExpectedNamespacesExist(t *testing.T) {
 				ctx:                context.TODO(),
 				client:             testclient.NewSimpleClientset(),
 				expectedNamespaces: []string{"cert-manager", "default"},
-				isProd:             true,
+				currentEnv:         "whatever",
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := doExpectedNamespacesExist(tt.args.ctx, tt.args.client, tt.args.expectedNamespaces, tt.args.isProd); (err != nil) != tt.wantErr {
+			if err := doExpectedNamespacesExist(tt.args.ctx, tt.args.client, tt.args.expectedNamespaces, tt.args.currentEnv); (err != nil) != tt.wantErr {
 				t.Errorf("doExpectedNamespacesExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
