@@ -85,7 +85,7 @@ func main() {
 func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface, expectedNamespaces []string, currentEnv string) error {
 	var missing []string
 	prodEnvs := []string{"manager", "live-2", "live"}
-	liveEnvs := []string{"live", "live-2"}
+	liveEnvs := []string{"live"}
 
 	isProd := slices.Contains(prodEnvs, currentEnv)
 
