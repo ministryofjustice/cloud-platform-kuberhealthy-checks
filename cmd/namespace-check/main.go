@@ -119,12 +119,12 @@ func doExpectedNamespacesExist(ctx context.Context, client kubernetes.Interface,
 			missing = append(missing, ns)
 		} else if err != nil {
 			log.Println("Getting namespace from cluster failed:", err)
-			return fmt.Errorf("failed getting namespace %s from cluster: %w\n", ns, err)
+			return fmt.Errorf("failed getting namespace %s from cluster: %w", ns, err)
 		}
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing namespaces: %s\n", strings.Join(missing, ", "))
+		return fmt.Errorf("missing namespaces: %s", strings.Join(missing, ", "))
 	}
 	return nil
 }
